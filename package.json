@@ -1,0 +1,14 @@
+{
+	"name"        : "osmium-iapi",
+	"description" : "Osmium Internal (crypted) API",
+	"license"     : "MIT",
+	"author"      : "Vasiliy Isaichkin <vasiliy@isaichkin.ru>",
+	"repository"  : "https://github.com/VasiliyIsaichkin/osmium-iapi",
+	"version"     : "0.1.0",
+	"dependencies": {
+		"osmium-crypt" : "^0.2.2",
+		"osmium-events": "^0.3.0",
+		"osmium-tools" : "^0.1.5",
+		"osmium-webapi": "^0.2.0"
+	}
+}
