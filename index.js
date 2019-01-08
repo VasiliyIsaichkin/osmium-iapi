@@ -32,10 +32,11 @@ class IApiClient extends WebApiClient {
 			nameReqCmdRet: 'r'
 		});
 		super(socket, options);
-		this.options.iApiVersion = 1;
+		this.options.iApiVersion = 2;
 
 		this.cryptor = new Crypt(this.options);
 		this.remoteName = false;
+
 		socket.on(`${this.options.prefix}|${this.options.nameReqCmd}`, () => {
 			socket.emit(`${this.options.prefix}|${this.options.nameReqCmdRet}`, name);
 		});
