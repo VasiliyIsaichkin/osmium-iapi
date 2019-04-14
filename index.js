@@ -48,7 +48,7 @@ class IApiClient extends WebApiClient {
 				{v: this.options.iApiVersion, i: name});
 		});
 
-		this.registerMiddlewareInc(async (packet) => {
+		this.registerMiddlewareIncBefore(async (packet) => {
 			if (!this.remoteName) {
 				this.remoteName = await new Promise((resolve) => {
 					socket.once(`${this.options.prefix}|${this.options.nameReqCmdRet}`, (p) => resolve(p));

@@ -4,7 +4,7 @@
 	"license"     : "MIT",
 	"author"      : "Vasiliy Isaichkin <vasiliy@isaichkin.ru>",
 	"repository"  : "https://github.com/VasiliyIsaichkin/osmium-iapi",
-	"version"     : "0.2.10",
+	"version"     : "0.2.11",
 	"dependencies": {
 		"osmium-crypt" : "^0.4.10",
 		"osmium-events": "^0.3.9",
