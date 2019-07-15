@@ -26,19 +26,19 @@ class IApiServer extends WebApiServer {
 class IApiClient extends WebApiClient {
 	constructor(socket, options, name, authProvider) {
 		Object.assign(options, {
-			keySalt      : 'XzNfq@UYplXiFOdoM0S*vxBC~b#*r0~z',
-			prefix       : 'iApi',
+			keySalt      : 'sZGtr3YzPxQlG57ZqFxpIS45stYly9BC',
+			prefix       : '',
 			nameReqCmd   : 'n',
 			nameReqCmdRet: 'r'
 		});
 		super(socket, options);
-		this.options.iApiVersion = 2;
+		this.options.iApiVersion = 4;
 
 		this.cryptor = new Crypt(this.options);
 		this.remoteName = false;
 
-		socket.on(`${this.options.prefix}|${this.options.nameReqCmd}`, () => {
-			socket.emit(`${this.options.prefix}|${this.options.nameReqCmdRet}`, name);
+		socket.on(`${this.options.prefix}${this.options.nameReqCmd}`, () => {
+			socket.emit(`${this.options.prefix}${this.options.nameReqCmdRet}`, name);
 		});
 
 		this.registerMiddlewareOut(async (packet) => {
@@ -51,8 +51,8 @@ class IApiClient extends WebApiClient {
 		this.registerMiddlewareIncBefore(async (packet) => {
 			if (!this.remoteName) {
 				this.remoteName = await new Promise((resolve) => {
-					socket.once(`${this.options.prefix}|${this.options.nameReqCmdRet}`, (p) => resolve(p));
-					socket.emit(`${this.options.prefix}|${this.options.nameReqCmd}`);
+					socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => resolve(p));
+					socket.emit(`${this.options.prefix}${this.options.nameReqCmd}`);
 				});
 			}
 
