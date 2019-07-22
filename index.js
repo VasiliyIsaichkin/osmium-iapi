@@ -1,5 +1,5 @@
 const {WebApiServer, WebApiClient} = require('osmium-webapi');
-const {Crypt} = require('osmium-crypt');
+const {Crypt, DataDecoder} = require('osmium-crypt');
 
 class IApiSimpleAuthProvider {
 	constructor(jsonAuthList) {
@@ -8,6 +8,7 @@ class IApiSimpleAuthProvider {
 
 	get(name, remoteIdx, fn) {
 		return (userData) => {
+			if (Buffer.isBuffer(userData)) userData = (new DataDecoder()).decode(userData);
 			if (!name && (!userData || !userData[remoteIdx])) return '';
 			if (fn) if (!fn(userData)) return '';
 			return '' + (name ? this.list[name] : this.list[userData[remoteIdx]]);
@@ -44,8 +45,14 @@ class IApiClient extends WebApiClient {
 		this.registerMiddlewareOut(async (packet) => {
 			const id = packet.id;
 			delete packet.id;
-			return await this.cryptor.encrypt(authProvider.get(this.options.isServer ? this.remoteName : name), packet, id + '|' + socket.id,
+			const payload = await this.cryptor.encrypt(authProvider.get(this.options.isServer ? this.remoteName : name), packet, id + '|' + socket.id,
 				{v: this.options.iApiVersion, i: name});
+			return {
+				version: packet.version,
+				id,
+				name,
+				args   : payload
+			};
 		});
 
 		this.registerMiddlewareIncBefore(async (packet) => {
@@ -57,8 +64,7 @@ class IApiClient extends WebApiClient {
 			}
 
 			const data = await this.cryptor.decrypt(authProvider.get(this.options.isServer ? this.remoteName : name, false,
-				(userData) => userData.v === this.options.iApiVersion && userData.i === this.remoteName), packet, true);
-
+				(userData) => userData.v === this.options.iApiVersion && userData.i === this.remoteName), packet.args, true);
 			if (!data || !data.id) return null;
 			packet = data.payload;
 			const idArr = data.id.split('|');
