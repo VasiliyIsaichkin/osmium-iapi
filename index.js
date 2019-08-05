@@ -28,7 +28,7 @@ class IApiClient extends WebApiClient {
 	constructor(socket, options, name, authProvider) {
 		Object.assign(options, {
 			keySalt      : 'sZGtr3YzPxQlG57ZqFxpIS45stYly9BC',
-			prefix       : '',
+			prefix       : 'iApi',
 			nameReqCmd   : 'n',
 			nameReqCmdRet: 'r'
 		});
@@ -47,19 +47,26 @@ class IApiClient extends WebApiClient {
 			delete packet.id;
 			const payload = await this.cryptor.encrypt(authProvider.get(this.options.isServer ? this.remoteName : name), packet, id + '|' + socket.id,
 				{v: this.options.iApiVersion, i: name});
+
 			return {
-				version: packet.version,
+				version : packet.version,
 				id,
 				name,
-				args   : payload
+				args    : payload,
+				metadata: packet.metadata
 			};
 		});
 
-		this.registerMiddlewareIncBefore(async (packet) => {
+		this.registerMiddlewareInc(async (packet) => {
 			if (!this.remoteName) {
 				this.remoteName = await new Promise((resolve) => {
-					socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => resolve(p));
-					socket.emit(`${this.options.prefix}${this.options.nameReqCmd}`);
+					const cmd = `${this.options.prefix}${this.options.nameReqCmd}`;
+					const iId = setInterval(() => socket.emit(cmd), 1000);
+					socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => {
+						clearInterval(iId);
+						resolve(p);
+					});
+					socket.emit(cmd);
 				});
 			}
 
