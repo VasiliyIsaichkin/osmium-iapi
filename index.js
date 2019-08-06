@@ -18,21 +18,23 @@ class IApiClient extends WebApiClient {
 			nameReqCmdRet: 'r'
 		});
 		super(socket, options);
-		this.options.iApiVersion = 4;
+		this.options.iApiVersion = 5;
 
 		this.cryptor = new Crypt(this.options);
 		this.remoteName = false;
+		this.authMeta = false;
 
 		socket.on(`${this.options.prefix}${this.options.nameReqCmd}`, () => {
-			socket.emit(`${this.options.prefix}${this.options.nameReqCmdRet}`, name);
+			const authMeta = authProvider.getMeta ? authProvider.getMeta(this) : undefined;
+			socket.emit(`${this.options.prefix}${this.options.nameReqCmdRet}`, {name, authMeta});
 		});
 
 		this.registerMiddlewareOut(async (packet) => {
 			await this.requestRemoteName(socket);
-			
+
 			const id = packet.id;
 			delete packet.id;
-			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.options.keySalt);
+			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.authMeta, this.options.keySalt);
 			const payload = await this.cryptor.encrypt(sharedKey, packet, id + '|' + socket.id,
 				{v: this.options.iApiVersion, i: name});
 
@@ -48,7 +50,7 @@ class IApiClient extends WebApiClient {
 		this.registerMiddlewareInc(async (packet) => {
 			await this.requestRemoteName(socket);
 
-			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.options.keySalt,
+			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.authMeta, this.options.keySalt,
 				(userData) => userData.v === this.options.iApiVersion && userData.i === this.remoteName);
 			const data = await this.cryptor.decrypt(sharedKey, packet.args, true);
 			if (!data || !data.id) return null;
@@ -62,7 +64,7 @@ class IApiClient extends WebApiClient {
 
 	async requestRemoteName(socket) {
 		if (this.remoteName) return;
-		this.remoteName = await new Promise((resolve) => {
+		const ret = await new Promise((resolve) => {
 			const cmd = `${this.options.prefix}${this.options.nameReqCmd}`;
 			const iId = setInterval(() => socket.emit(cmd), 1000);
 			socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => {
@@ -71,6 +73,9 @@ class IApiClient extends WebApiClient {
 			});
 			socket.emit(cmd);
 		});
+
+		this.remoteName = ret.name;
+		this.authMeta = ret.authMeta;
 	}
 }
 
