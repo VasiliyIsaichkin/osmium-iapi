@@ -1,20 +1,5 @@
 const {WebApiServer, WebApiClient} = require('osmium-webapi');
-const {Crypt, DataDecoder} = require('osmium-crypt');
-
-class IApiSimpleAuthProvider {
-	constructor(jsonAuthList) {
-		this.list = jsonAuthList;
-	}
-
-	get(name, remoteIdx, fn) {
-		return (userData) => {
-			if (Buffer.isBuffer(userData)) userData = (new DataDecoder()).decode(userData);
-			if (!name && (!userData || !userData[remoteIdx])) return '';
-			if (fn) if (!fn(userData)) return '';
-			return '' + (name ? this.list[name] : this.list[userData[remoteIdx]]);
-		};
-	}
-}
+const {Crypt, tools} = require('osmium-crypt');
 
 class IApiServer extends WebApiServer {
 	constructor(io, options, name, authProvider) {
@@ -43,9 +28,12 @@ class IApiClient extends WebApiClient {
 		});
 
 		this.registerMiddlewareOut(async (packet) => {
+			await this.requestRemoteName(socket);
+			
 			const id = packet.id;
 			delete packet.id;
-			const payload = await this.cryptor.encrypt(authProvider.get(this.options.isServer ? this.remoteName : name), packet, id + '|' + socket.id,
+			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.options.keySalt);
+			const payload = await this.cryptor.encrypt(sharedKey, packet, id + '|' + socket.id,
 				{v: this.options.iApiVersion, i: name});
 
 			return {
@@ -58,20 +46,11 @@ class IApiClient extends WebApiClient {
 		});
 
 		this.registerMiddlewareInc(async (packet) => {
-			if (!this.remoteName) {
-				this.remoteName = await new Promise((resolve) => {
-					const cmd = `${this.options.prefix}${this.options.nameReqCmd}`;
-					const iId = setInterval(() => socket.emit(cmd), 1000);
-					socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => {
-						clearInterval(iId);
-						resolve(p);
-					});
-					socket.emit(cmd);
-				});
-			}
+			await this.requestRemoteName(socket);
 
-			const data = await this.cryptor.decrypt(authProvider.get(this.options.isServer ? this.remoteName : name, false,
-				(userData) => userData.v === this.options.iApiVersion && userData.i === this.remoteName), packet.args, true);
+			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.options.keySalt,
+				(userData) => userData.v === this.options.iApiVersion && userData.i === this.remoteName);
+			const data = await this.cryptor.decrypt(sharedKey, packet.args, true);
 			if (!data || !data.id) return null;
 			packet = data.payload;
 			const idArr = data.id.split('|');
@@ -80,10 +59,22 @@ class IApiClient extends WebApiClient {
 			return packet;
 		});
 	}
+
+	async requestRemoteName(socket) {
+		if (this.remoteName) return;
+		this.remoteName = await new Promise((resolve) => {
+			const cmd = `${this.options.prefix}${this.options.nameReqCmd}`;
+			const iId = setInterval(() => socket.emit(cmd), 1000);
+			socket.once(`${this.options.prefix}${this.options.nameReqCmdRet}`, (p) => {
+				clearInterval(iId);
+				resolve(p);
+			});
+			socket.emit(cmd);
+		});
+	}
 }
 
 module.exports = {
 	IApiServer,
-	IApiClient,
-	IApiSimpleAuthProvider
+	IApiClient
 };
