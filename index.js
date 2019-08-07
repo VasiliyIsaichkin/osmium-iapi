@@ -29,7 +29,8 @@ class IApiClient extends WebApiClient {
 			socket.emit(`${this.options.prefix}${this.options.nameReqCmdRet}`, {name, authMeta});
 		});
 
-		this.registerMiddlewareOut(async (packet) => {
+		this.registerMiddlewareOut(async (packet, socket, _, local) => {
+			if (local) return packet;
 			await this.requestRemoteName(socket);
 
 			const id = packet.id;
@@ -47,7 +48,8 @@ class IApiClient extends WebApiClient {
 			};
 		});
 
-		this.registerMiddlewareInc(async (packet) => {
+		this.registerMiddlewareInc(async (packet, socket, _, local) => {
+			if (local) return packet;
 			await this.requestRemoteName(socket);
 
 			const sharedKey = authProvider.get(this.options.isServer, this.remoteName, name, this.authMeta, this.options.keySalt,
