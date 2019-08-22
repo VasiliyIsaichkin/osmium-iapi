@@ -1,16 +1,16 @@
-const {WebApiServer, WebApiClient} = require('osmium-webapi');
+const {WebApiServer, WebApiClient} = require('../osmium-webapi');
 const {Crypt, oTools} = require('osmium-crypt');
 
 class IApiServer extends WebApiServer {
 	constructor(io, options, name, authProvider) {
 		options.isServer = true;
-		options.clientProcessor = (socket) => new IApiClient(socket, options, name, authProvider);
+		options.clientProcessor = (socket) => new IApiClient(socket, options, name, authProvider, true);
 		super(io, options);
 	}
 }
 
 class IApiClient extends WebApiClient {
-	constructor(socket, options, name, authProvider) {
+	constructor(socket, options, name, authProvider, isServer = false) {
 		Object.assign(options, {
 			keySalt      : 'sZGtr3YzPxQlG57ZqFxpIS45stYly9BC',
 			prefix       : 'iApi',
