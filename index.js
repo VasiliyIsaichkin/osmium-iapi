@@ -1,4 +1,4 @@
-const {WebApiServer, WebApiClient} = require('../osmium-webapi');
+const {WebApiServer, WebApiClient} = require('osmium-webapi');
 const {Crypt, oTools} = require('osmium-crypt');
 
 class IApiServer extends WebApiServer {
