@@ -51,8 +51,8 @@ class IApiClient extends WebApiClient {
 			if (!data || !data.id) return null;
 			Object.assign($packet, data.payload);
 
-			const idArr = data.id.split('|');
-			if (idArr[1] !== socket.id) return null;
+			//const idArr = data.id.split('|');
+			//if (idArr[1] !== socket.id) return null;
 		};
 
 
